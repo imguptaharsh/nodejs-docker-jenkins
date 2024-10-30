@@ -1,28 +1,36 @@
 pipeline {
     agent any
     tools {
-        nodejs 'NodeJs' // Matches the exact name in Global Tool Configuration
+        nodejs 'NodeJs' // Ensure this matches exactly the name in Global Tool Configuration
     }
     environment {
         NODE_ENV = 'development'
         APP_PORT = '5555'
     }
     stages {
-        stage('Verify Node.js and npm Installation') {
-            steps {
-                echo 'Verifying Node and npm are accessible in Jenkins...'
-                sh 'node -v'
-                sh 'npm -v'
-            }
-        }
         stage('Debug Environment') {
             steps {
                 script {
-                    echo 'Debugging environment...'
-                    sh 'echo $PATH'
-                    sh 'which node'
-                    sh 'which npm'
+                    echo '=== Debugging Environment ==='
+                    sh 'echo "Current User: $(whoami)"'
+                    sh 'echo "PATH: $PATH"'
+                    sh 'which sh || echo "sh not found"'
+                    sh 'which bash || echo "bash not found"'
+                    sh 'which node || echo "node not found"'
+                    sh 'which npm || echo "npm not found"'
+                    sh 'sh --version || echo "sh not available"'
+                    sh 'bash --version || echo "bash not available"'
                 }
+            }
+        }
+        stage('Verify Node.js and npm Installation') {
+            steps {
+                echo 'Verifying Node and npm are accessible in Jenkins...'
+                sh '''
+                    #!/bin/bash
+                    node -v
+                    npm -v
+                '''
             }
         }
         stage('Checkout') {
