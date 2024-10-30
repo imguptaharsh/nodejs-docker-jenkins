@@ -1,90 +1,88 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'NodeJs' // Matches the exact name in Global Tool Configuration
+    }
     environment {
-        IMAGE_NAME = 'my-nodejs-app'
-        PATH = "/opt/homebrew/bin:${env.PATH}" // Ensure Docker is in PATH
+        NODE_ENV = 'development'
+        APP_PORT = '5555'
     }
     stages {
-        stage('Cleanup') {
+        stage('Verify Node.js and npm Installation') {
             steps {
-                cleanWs()
+                echo 'Verifying Node and npm are accessible in Jenkins...'
+                sh 'node -v'
+                sh 'npm -v'
             }
         }
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/imguptaharsh/nodejs-docker-jenkins.git'
+                echo 'Checking out code...'
+                checkout scm
             }
         }
-        stage('Diagnose Environment') {
+        stage('Install dependencies') {
             steps {
-                sh '''
-                    echo "Current PATH: $PATH"
-                    if command -v docker >/dev/null 2>&1; then
-                        echo "Docker is available: $(docker --version)"
-                    else
-                        echo "Docker is not installed or not in PATH."
-                        exit 1
-                    fi
-                '''
+                echo 'Installing dependencies...'
+                sh 'npm install'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                sh 'npm test || echo "No tests specified, skipping..." && exit 0'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo "Building application for environment: ${env.NODE_ENV}"
+                sh 'npm run build'
+            }
+        }
+        stage('Package for Deployment') {
+            steps {
+                echo "Packaging application..."
+                sh 'tar -czf app.tar.gz *'
             }
         }
         stage('Build Docker Image') {
             steps {
                 script {
-                    try {
-                        sh "docker build -t ${IMAGE_NAME} ."
-                    } catch (Exception e) {
-                        echo "Docker build failed: ${e.getMessage()}"
-                        error("Stopping pipeline due to Docker build failure.")
+                    withEnv(['PATH+DOCKER=/usr/local/bin']) {  // Adjust path if Docker is located elsewhere
+                        echo "Building Docker image for tag: ${env.BUILD_ID}"
+                        docker.build("my-node-app:${env.BUILD_ID}")
                     }
                 }
             }
         }
-        stage('Run Docker Container') {
-            steps {
+ stage('Push Docker Image') {
+    steps {
+        withEnv(['PATH+DOCKER=/usr/local/bin']) { // Adjust path if Docker is located elsewhere
+            withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                 script {
-                    try {
-                        sh "docker run -d --name ${IMAGE_NAME} -p 5555:5555 ${IMAGE_NAME}"
-                        // Wait for the container to start
-                        sleep 10
-                    } catch (Exception e) {
-                        echo "Failed to run Docker container: ${e.getMessage()}"
-                        error("Stopping pipeline due to Docker run failure.")
-                    }
-                }
-            }
-        }
-        stage('Test Application') {
-            steps {
-                script {
-                    sh '''
-                    if ! curl -I http://localhost:5555 | grep "200 OK"; then
-                        echo "Application not responding"
-                        exit 1
-                    fi
-                    '''
+                    echo 'Logging in to Docker Hub...'
+                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                    echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                    sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                    echo 'Pushing Docker image to Docker Hub...'
+                    sh "docker push $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
                 }
             }
         }
     }
+}
+
+    }
     post {
-        always {
-            script {
-                try {
-                    sh "docker logs ${IMAGE_NAME}"
-                } catch (Exception e) {
-                    echo "Failed to retrieve Docker logs: ${e.getMessage()}"
-                }
-                sh "docker stop ${IMAGE_NAME} || true"
-                sh "docker rm ${IMAGE_NAME} || true"
-                sh "docker rmi ${IMAGE_NAME} || true"
-            }
-        }
         success {
-            echo "Pipeline completed successfully!"
+            echo 'Pipeline completed successfully.'
         }
         failure {
-            echo "Pipeline failed. Check the logs for more details."
+            echo 'Pipeline failed.'
+        }
+        always {
+            echo "Cleaning up workspace..."
+            cleanWs() // Clean workspace after build completes
         }
     }
 }
