@@ -4,8 +4,8 @@ pipeline {
         PATH = "/opt/homebrew/bin:/usr/local/bin:$PATH" // Ensure Docker is in PATH
         IMAGE_NAME = "my-nodejs-app"
         IMAGE_TAG = "latest"
-        TEST_IMAGE_NAME = "my-nodejs-app-test"
-        TEST_IMAGE_TAG = "test-latest"
+        // TEST_IMAGE_NAME = "my-nodejs-app-test"
+        // TEST_IMAGE_TAG = "test-latest"
     }
     stages {
         stage('Checkout') {
