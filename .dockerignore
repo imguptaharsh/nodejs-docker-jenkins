@@ -1,9 +1,0 @@
-node_modules
-npm-debug.log
-Dockerfile.test
-.git
-.gitignore
-Jenkinsfile
-*.md
-tests/e2e
-

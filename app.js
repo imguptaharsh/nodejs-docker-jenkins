@@ -1,15 +1,5 @@
 const express = require('express');
 const app = express();
-const port = 5555;
-
-// Simple route that returns "Hello, World!"
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
-});
-
-// Start the server
-app.listen(port, () => {
-  console.log(`App is running on port ${port}`);
-});
-
-module.exports = app; // Export for testing
+const PORT = 3000;
+app.get('/', (req, res) => res.send('Welcome to My Node.js App!'));
+app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
