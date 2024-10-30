@@ -1,9 +1,11 @@
 pipeline {
     agent any
     environment {
-        PATH = "/opt/homebrew/bin:/usr/local/bin:$PATH" // Updated PATH
+        PATH = "/opt/homebrew/bin:/usr/local/bin:$PATH" // Ensure Docker is in PATH
         IMAGE_NAME = "my-nodejs-app"
         IMAGE_TAG = "latest"
+        TEST_IMAGE_NAME = "my-nodejs-app-test"
+        TEST_IMAGE_TAG = "test-latest"
     }
     stages {
         stage('Checkout') {
@@ -11,14 +13,19 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build') {
+        stage('Build Test Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                sh 'docker build -f Dockerfile.test -t $TEST_IMAGE_NAME:$TEST_IMAGE_TAG .'
             }
         }
-        stage('Test') {
+        stage('Run Tests') {
             steps {
-                sh 'docker run --rm $IMAGE_NAME:$IMAGE_TAG npm test'
+                sh 'docker run --rm $TEST_IMAGE_NAME:$TEST_IMAGE_TAG'
+            }
+        }
+        stage('Build Production Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
             }
         }
         stage('Deploy') {
@@ -32,6 +39,7 @@ pipeline {
     post {
         always {
             // Clean up Docker images to save space
+            sh 'docker rmi $TEST_IMAGE_NAME:$TEST_IMAGE_TAG || true'
             sh 'docker rmi $IMAGE_NAME:$IMAGE_TAG || true'
         }
         success {
