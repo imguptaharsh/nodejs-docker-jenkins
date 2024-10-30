@@ -7,7 +7,6 @@
     "start": "node app.js", 
     "build": "echo 'Build step is defined; add your build commands here'"
   },
-  
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -16,7 +15,6 @@
     "express": "^4.21.1"
   },
   "devDependencies": {
-   
     "chai": "^4.3.4",
     "mocha": "^9.1.3",
     "supertest": "^6.1.6"
