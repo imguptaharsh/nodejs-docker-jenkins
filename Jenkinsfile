@@ -1,24 +1,37 @@
 pipeline {
     agent any
     tools {
-        nodejs 'NodeJs' // Matches the exact name in Global Tool Configuration
+        nodejs 'NodeJs' // Ensure this matches exactly with the Global Tool Configuration
     }
     environment {
         NODE_ENV = 'development'
         APP_PORT = '3000'
+        // It's good practice to include paths if necessary
+        PATH = "/usr/local/bin:${env.PATH}"
     }
     stages {
-        stage('Verify Node.js and npm Installation') {
+        stage('Debug Environment') {
             steps {
-                echo 'Verifying Node and npm are accessible in Jenkins...'
-                sh 'node -v'
-                sh 'npm -v'
+                echo "----- Debugging Environment -----"
+                echo "Current PATH: ${env.PATH}"
+                sh 'which sh || echo "sh not found"'
+                sh 'sh --version || echo "Cannot retrieve sh version"'
+                sh 'node -v || echo "Node.js not found"'
+                sh 'npm -v || echo "npm not found"'
+                echo "----------------------------------"
             }
         }
         stage('Checkout') {
             steps {
                 echo 'Checking out code...'
                 checkout scm
+            }
+        }
+        stage('Verify Node.js and npm Installation') {
+            steps {
+                echo 'Verifying Node and npm are accessible in Jenkins...'
+                sh 'node -v'
+                sh 'npm -v'
             }
         }
         stage('Install dependencies') {
@@ -55,23 +68,22 @@ pipeline {
                 }
             }
         }
- stage('Push Docker Image') {
-    steps {
-        withEnv(['PATH+DOCKER=/usr/local/bin']) { // Adjust path if Docker is located elsewhere
-            withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                script {
-                    echo 'Logging in to Docker Hub...'
-                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                    echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
-                    sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
-                    echo 'Pushing Docker image to Docker Hub...'
-                    sh "docker push $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+        stage('Push Docker Image') {
+            steps {
+                withEnv(['PATH+DOCKER=/usr/local/bin']) { // Adjust path if Docker is located elsewhere
+                    withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        script {
+                            echo 'Logging in to Docker Hub...'
+                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                            echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                            sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                            echo 'Pushing Docker image to Docker Hub...'
+                            sh "docker push $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
     }
     post {
         success {
