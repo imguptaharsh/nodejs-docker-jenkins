@@ -2,10 +2,13 @@
   "name": "nodejs-docker-jenkins",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
+   "scripts": {
     "start": "node app.js",
-    "test": "mocha"
+    "test": "mocha",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
+  
   "keywords": [],
   "author": "",
   "license": "ISC",

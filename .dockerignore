@@ -1,5 +1,9 @@
 node_modules
 npm-debug.log
-Dockerfile
-.dockerignore
+Dockerfile.test
+.git
+.gitignore
 Jenkinsfile
+*.md
+tests/e2e
+

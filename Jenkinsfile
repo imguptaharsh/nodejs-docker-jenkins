@@ -1,52 +1,53 @@
 pipeline {
     agent any
     environment {
-        PATH = "/opt/homebrew/bin:/usr/local/bin:$PATH" // Ensure Docker is in PATH
-        IMAGE_NAME = "my-nodejs-app"
-        IMAGE_TAG = "latest"
-        // TEST_IMAGE_NAME = "my-nodejs-app-test"
-        // TEST_IMAGE_TAG = "test-latest"
+        IMAGE_NAME = 'my-nodejs-app'
     }
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                checkout scm
+                git 'https://github.com/imguptaharsh/nodejs-docker-jenkins.git'
             }
         }
-        stage('Build Test Image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -f Dockerfile.test -t $TEST_IMAGE_NAME:$TEST_IMAGE_TAG .'
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}")
+                }
             }
         }
-        stage('Run Tests') {
+        stage('Run Docker Container') {
             steps {
-                sh 'docker run --rm $TEST_IMAGE_NAME:$TEST_IMAGE_TAG'
+                script {
+                    bat "docker run -d --name ${IMAGE_NAME} -p 5555:5555 ${IMAGE_NAME}"
+                    sleep(10)
+                }
             }
         }
-        stage('Build Production Image') {
+        stage('Test Application') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploy steps go here'
-                // Example: Push to Docker Hub or another registry
-                // sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
+                script {
+                    bat '''
+                    curl -I http://localhost:5555 | find "200 OK" || (echo "Application not responding" && exit 1)
+                    '''
+                }
             }
         }
     }
     post {
         always {
-            // Clean up Docker images to save space
-            sh 'docker rmi $TEST_IMAGE_NAME:$TEST_IMAGE_TAG || true'
-            sh 'docker rmi $IMAGE_NAME:$IMAGE_TAG || true'
+            script {
+                bat "docker logs ${IMAGE_NAME}" 
+                bat "docker stop ${IMAGE_NAME} || true"
+                bat "docker rm ${IMAGE_NAME} || true"
+                bat "docker rmi ${IMAGE_NAME} || true"
+            }
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo 'Pipeline failed.'
+            echo "Pipeline failed. Check the logs for more details."
         }
     }
 }
