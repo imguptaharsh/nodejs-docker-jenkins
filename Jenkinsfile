@@ -8,6 +8,7 @@ pipeline {
     environment {
         NODE_ENV = 'development'
         APP_PORT = '5555'
+        // Define any other environment variables here
     }
     stages {
         stage('Verify Node.js and npm Installation') {
@@ -19,8 +20,11 @@ pipeline {
         }
         stage('Checkout') {
             steps {
-                echo 'Checking out code...'
-                checkout scm
+                echo 'Checking out code using SSH...'
+                // Ensure that the SSH credentials are correctly set up in Jenkins
+                git url: 'git@github.com:imguptaharsh/nodejs-docker-jenkins.git',
+                    credentialsId: 'github-ssh-key', // Replace with your actual credentials ID
+                    branch: 'main'
             }
         }
         stage('Install dependencies') {
@@ -32,7 +36,8 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Running tests...'
-                sh 'npm test || echo "No tests specified, skipping..." && exit 0'
+                // Improved error handling: let the pipeline fail if tests fail
+                sh 'npm test'
             }
         }
         stage('Build') {
@@ -44,6 +49,7 @@ pipeline {
         stage('Package for Deployment') {
             steps {
                 echo "Packaging application..."
+                // Optionally, use a .dockerignore to exclude unnecessary files
                 sh 'tar -czf app.tar.gz *'
             }
         }
