@@ -1,36 +1,20 @@
 pipeline {
-    agent any
-    tools {
-        nodejs 'NodeJs' // Ensure this matches exactly the name in Global Tool Configuration
+    agent {
+        docker {
+            image 'node:14' // Use an official Node.js Docker image
+            args '-u root:root' // Optional: run as root to avoid permission issues
+        }
     }
     environment {
         NODE_ENV = 'development'
         APP_PORT = '5555'
     }
     stages {
-        stage('Debug Environment') {
-            steps {
-                script {
-                    echo '=== Debugging Environment ==='
-                    sh 'echo "Current User: $(whoami)"'
-                    sh 'echo "PATH: $PATH"'
-                    sh 'which sh || echo "sh not found"'
-                    sh 'which bash || echo "bash not found"'
-                    sh 'which node || echo "node not found"'
-                    sh 'which npm || echo "npm not found"'
-                    sh 'sh --version || echo "sh not available"'
-                    sh 'bash --version || echo "bash not available"'
-                }
-            }
-        }
         stage('Verify Node.js and npm Installation') {
             steps {
-                echo 'Verifying Node and npm are accessible in Jenkins...'
-                sh '''
-                    #!/bin/bash
-                    node -v
-                    npm -v
-                '''
+                echo 'Verifying Node and npm are accessible in Docker container...'
+                sh 'node -v'
+                sh 'npm -v'
             }
         }
         stage('Checkout') {
@@ -66,25 +50,21 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    withEnv(['PATH+DOCKER=/usr/local/bin']) {  // Adjust path if Docker is located elsewhere
-                        echo "Building Docker image for tag: ${env.BUILD_ID}"
-                        docker.build("my-node-app:${env.BUILD_ID}")
-                    }
+                    echo "Building Docker image for tag: ${env.BUILD_ID}"
+                    docker.build("my-node-app:${env.BUILD_ID}")
                 }
             }
         }
         stage('Push Docker Image') {
             steps {
-                withEnv(['PATH+DOCKER=/usr/local/bin']) { // Adjust path if Docker is located elsewhere
-                    withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        script {
-                            echo 'Logging in to Docker Hub...'
-                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                            echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
-                            sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
-                            echo 'Pushing Docker image to Docker Hub...'
-                            sh "docker push $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
-                        }
+                withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        echo 'Logging in to Docker Hub...'
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                        echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                        sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
+                        echo 'Pushing Docker image to Docker Hub...'
+                        sh "docker push $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
                     }
                 }
             }
