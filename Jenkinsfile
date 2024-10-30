@@ -73,7 +73,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerHubPassword', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         script {
                             echo 'Logging in to Docker Hub...'
-                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                            sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
                             echo "Tagging Docker image as $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
                             sh "docker tag my-node-app:${env.BUILD_ID} $DOCKER_USERNAME/my-node-app:${env.BUILD_ID}"
                             echo 'Pushing Docker image to Docker Hub...'
