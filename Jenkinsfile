@@ -6,8 +6,7 @@ pipeline {
     environment {
         NODE_ENV = 'development'
         APP_PORT = '3000'
-        // It's good practice to include paths if necessary
-        PATH = "/usr/local/bin:${env.PATH}"
+        PATH = "/bin:/usr/bin:/usr/local/bin:${env.PATH}" // Ensures essential directories are in PATH
     }
     stages {
         stage('Debug Environment') {
