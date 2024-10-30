@@ -1,7 +1,7 @@
 // app.js
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
+const port =5555;
 
 // Simple route that returns "Hello, World!"
 app.get('/', (req, res) => {
